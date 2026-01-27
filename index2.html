@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ardon Light - Command Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- MODERN VARIABLES --- */
+        :root {
+            --primary: #2563EB;      /* Modern Blue */
+            --success: #10B981;      /* Emerald Green */
+            --danger: #EF4444;       /* Bright Red */
+            --warning: #F59E0B;      /* Amber */
+            --dark: #1F2937;         /* Dark Grey */
+            --light: #F3F4F6;        /* Light Grey Background */
+            --white: #FFFFFF;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 12px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--light);
+            color: var(--dark);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- HEADER --- */
+        header {
+            background-color: var(--white);
+            padding: 1rem 1.5rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--primary);
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+
+        /* --- LAYOUT CONTAINER --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        /* --- BUTTONS --- */
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        button:active { transform: scale(0.98); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btn-primary { background-color: var(--primary); color: white; width: 100%; }
+        .btn-danger { background-color: var(--danger); color: white; width: 100%; }
+        .btn-warning { background-color: var(--warning); color: white; width: 100%; }
+        .btn-outline { background-color: white; border: 1px solid #D1D5DB; color: var(--dark); }
+        
+        .btn-call {
+            background-color: var(--warning);
+            color: white;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            border-radius: 6px;
+        }
+
+        /* --- INPUTS --- */
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #D1D5DB;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            box-sizing: border-box;
+            outline: none;
+        }
+        input:focus { border-color: var(--primary); ring: 2px solid var(--primary); }
+
+        /* --- VIEWS --- */
+        .view-section { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .active-view { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- LOGIN CARD --- */
+        .login-card {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            max-width: 400px;
+            margin: 4rem auto;
+            text-align: center;
+        }
+
+        /* --- PICKER INTERFACE --- */
+        .status-hero {
+            padding: 3rem 1rem;
+            border-radius: var(--radius);
+            color: white;
+            text-align: center;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+        .bg-picking { background: linear-gradient(135deg, #10B981 0%, #059669 100%); }
+        .bg-hold { background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); animation: pulse-red 2s infinite; }
+        
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        .status-hero h1 { font-size: 3rem; margin: 0; font-weight: 800; }
+        .status-hero p { font-size: 1.2rem; opacity: 0.9; margin-top: 0.5rem; }
+
+        .zone-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 1rem;
+        }
+        .zone-btn {
+            background-color: white;
+            border: 1px solid #E5E7EB;
+            color: var(--dark);
+            padding: 1.5rem 0;
+            font-size: 1.25rem;
+            border-radius: 8px;
+        }
+        .zone-btn:hover { border-color: var(--primary); color: var(--primary); background-color: #EFF6FF; }
+
+        /* --- DEO DASHBOARD GRID --- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr; /* Issues take more space than pickers */
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-grid { grid-template-columns: 1fr; } /* Stack on mobile/tablet */
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            border: 1px solid #F3F4F6;
+        }
+
+        .card-header {
+            padding: 1rem 1.5rem;
+            background-color: #F9FAFB;
+            border-bottom: 1px solid #E5E7EB;
+            font-weight: 700;
+            color: var(--dark);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-body {
+            padding: 0; /* Removing padding for list items */
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .empty-state { padding: 2rem; text-align: center; color: #9CA3AF; }
+
+        /* --- TICKET LIST ITEM --- */
+        .ticket-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #F3F4F6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.1s;
+        }
+        .ticket-item:last-child { border-bottom: none; }
+        .ticket-item:hover { background-color: #FEF2F2; } /* Light red hover */
+        
+        .ticket-details h4 { margin: 0; font-size: 1.1rem; color: var(--danger); display: flex; align-items: center; gap: 8px;}
+        .ticket-details p { margin: 4px 0 0 0; color: #6B7280; font-size: 0.9rem; }
+        
+        .badge { 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            font-size: 0.75rem; 
+            font-weight: bold; 
+            text-transform: uppercase;
+        }
+        .badge-red { background: #FEE2E2; color: #991B1B; }
+
+        /* --- PICKER LIST ITEM --- */
+        .picker-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #F3F4F6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .picker-info { display: flex; align-items: center; gap: 10px; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot-green { background-color: var(--success); box-shadow: 0 0 0 4px #D1FAE5; }
+        .dot-red { background-color: var(--danger); box-shadow: 0 0 0 4px #FEE2E2; }
+        
+        .picker-name { font-weight: 600; font-size: 0.95rem; }
+        .picker-status-text { font-size: 0.8rem; color: #6B7280; }
+
+        /* --- HISTORY TABLE --- */
+        .history-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .history-table th { background-color: #F9FAFB; padding: 12px 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #E5E7EB; }
+        .history-table td { padding: 12px 16px; border-bottom: 1px solid #F3F4F6; color: #4B5563; }
+        
+        /* --- MODALS & OVERLAYS --- */
+        .overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 2000;
+            backdrop-filter: blur(4px);
+            justify-content: center; align-items: center;
+        }
+        .modal { background: white; padding: 2rem; border-radius: var(--radius); width: 90%; max-width: 400px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+        
+        .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 1.5rem; }
+        .cat-btn { background-color: #F3F4F6; color: var(--dark); padding: 1rem; border-radius: 8px; font-weight: 600; }
+        .cat-btn:hover { background-color: var(--primary); color: white; }
+
+        #callout-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--danger); z-index: 3000;
+            color: white; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center;
+            animation: flash 1s infinite;
+        }
+        @keyframes flash { 0%, 100% { background-color: var(--danger); } 50% { background-color: #B91C1C; } }
+
+        /* --- TOAST --- */
+        #toast {
+            position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
+            background-color: var(--dark); color: white;
+            padding: 12px 24px; border-radius: 50px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            z-index: 9999; font-weight: 600;
+            transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: center; gap: 10px;
+        }
+        #toast.show { top: 24px; }
+    </style>
+</head>
+<body>
+
+    <div id="toast"><span>🔔</span> <span id="toast-msg">Notification</span></div>
+
+    <audio id="alert-sound" preload="auto">
+        <source src="data:audio/mp3;base64,//NExAAAAaniaAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NExAAAAaniaAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NExAAAAaniaAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NExAAAAaniaAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NExAAAAaniaAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NExAAAAaniaAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NExAAAAaniaAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NExAAAAaniaAAAAExBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq" type="audio/mpeg">
+    </audio>
+
+    <div id="callout-overlay">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
+        <h1 style="font-size: 3rem; margin: 0; line-height: 1;">REPORT TO<br>DESK</h1>
+        <p style="font-size: 1.5rem; opacity: 0.9;">Manager is paging you</p>
+        <button onclick="acknowledgeCallout()" style="margin-top: 2rem; background: white; color: var(--danger); padding: 1rem 3rem; font-size: 1.2rem; border-radius: 50px;">I AM COMING</button>
+    </div>
+
+    <div id="resolve-modal" class="overlay">
+        <div class="modal">
+            <h3>Categorize Issue</h3>
+            <p style="color: #6B7280;">Select the root cause to close ticket.</p>
+            <div class="cat-grid">
+                <button class="cat-btn" onclick="confirmResolve('WID Issue')">WID Issue</button>
+                <button class="cat-btn" onclick="confirmResolve('IBL Issue')">IBL Issue</button>
+                <button class="cat-btn" onclick="confirmResolve('PNF Issue')">PNF Issue</button>
+                <button class="cat-btn" onclick="confirmResolve('Packing Cancel')">Packing Cancel</button>
+                <button class="cat-btn" onclick="confirmResolve('Tech Issue')">Tech Issue</button>
+                <button class="cat-btn" onclick="confirmResolve('Other')">Other</button>
+            </div>
+            <button class="btn-outline" style="margin-top: 1rem; width: 100%;" onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+
+    <header>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary);"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+            <h2>Ardon Light</h2>
+        </div>
+        <div id="user-badge" style="display:none; font-weight:600; color:var(--dark); background:#F3F4F6; padding: 6px 12px; border-radius:20px;">
+            </div>
+    </header>
+
+    <div class="container">
+
+        <div id="view-login" class="view-section active-view">
+            <div class="login-card">
+                <h2 style="margin-bottom: 1.5rem;">Welcome</h2>
+                <div style="text-align: left; margin-bottom: 5px; font-size: 0.9rem; font-weight: 600; color: #374151;">Casper ID / Employee ID</div>
+                <input type="text" id="input-casper-id" placeholder="e.g. 1024 or DEO">
+                <button id="btn-login" class="btn-primary" onclick="handleLogin()" disabled>Connecting...</button>
+                <p id="loading-msg" style="margin-top: 1rem; color: #6B7280; font-size: 0.85rem;">Securely connecting to database...</p>
+            </div>
+        </div>
+
+        <div id="view-picker" class="view-section">
+            <div id="picker-status-card" class="status-hero bg-picking">
+                <div style="font-size: 1rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;">Current Status</div>
+                <h1 id="status-text">PICKING</h1>
+                <p id="display-zone-info" style="display:none;">Help coming to <span id="display-zone" style="font-weight:bold;">--</span></p>
+            </div>
+
+            <div id="picker-controls">
+                <button class="btn-danger" style="height: 120px; font-size: 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;" onclick="toggleZoneSelector()">
+                    <span style="font-size: 2rem;">✋</span>
+                    <span>RAISE ISSUE / STOP</span>
+                </button>
+            </div>
+
+            <div id="picker-waiting" style="display:none;">
+                <div style="background: white; padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow); text-align: center; margin-bottom: 1rem;">
+                    <h3 style="margin-top: 0;">DEO Notified</h3>
+                    <p style="color: #6B7280;">Please wait at your location. The manager has received your alert.</p>
+                </div>
+                <button class="btn-warning" onclick="cancelActiveTicket()">CANCEL / FALSE ALARM</button>
+            </div>
+
+            <div id="zone-selector" style="display:none;">
+                <h3 style="margin-bottom: 1rem;">Where is the issue?</h3>
+                <div class="zone-grid" id="zone-buttons"></div>
+                <button class="btn-outline" style="width: 100%; margin-top: 10px;" onclick="cancelZoneSelection()">Cancel</button>
+            </div>
+        </div>
+
+        <div id="view-deo" class="view-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.5rem;">
+                <h2 style="margin:0;">Dashboard</h2>
+                <button onclick="testNotification()" class="btn-outline" style="padding: 8px 16px; font-size: 0.9rem;">🔊 Test Alert</button>
+            </div>
+
+            <div class="dashboard-grid">
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span>🔴 Active Issues</span>
+                        <span id="issue-count" style="background:var(--danger); color:white; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem;">0</span>
+                    </div>
+                    <div class="card-body" id="ticket-list">
+                        <div class="empty-state">No active issues at the moment.</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span>🟢 Active Pickers</span>
+                        <span id="picker-count" style="background:var(--success); color:white; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem;">0</span>
+                    </div>
+                    <div class="card-body" id="active-pickers-list">
+                        <div class="empty-state">No pickers online.</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span>📋 Today's Logs</span>
+                    <button onclick="downloadCSV()" style="font-size: 0.8rem; padding: 6px 12px; background: #F3F4F6; border: 1px solid #E5E7EB; border-radius: 6px; color: var(--dark);">⬇ Export CSV</button>
+                </div>
+                <div class="card-body">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>ID</th>
+                                <th>Zone</th>
+                                <th>Category</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getDatabase, ref, push, onValue, remove, set, onChildAdded, get, update, onDisconnect } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-YOUR-API-KEY-HERE",
+            authDomain: "your-project.firebaseapp.com",
+            databaseURL: "https://your-project-default-rtdb.firebaseio.com",
+            projectId: "your-project",
+            storageBucket: "your-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456:web:abcdef"
+        };
+
+        const PICKER_LIST_URL = "https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO/main/pickers.json"; 
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let authorizedPickers = [];
+        let currentUser = "";
+        let currentTicketId = null;
+        let isDeoMode = false;
+        let initialLoadComplete = false; 
+        let allHistoryData = [];
+        let pendingResolveId = null; 
+        let alertInterval = null;
+
+        // --- INIT ---
+        (async function initSystem() {
+            try {
+                const response = await fetch(PICKER_LIST_URL);
+                if (response.ok) authorizedPickers = await response.json();
+            } catch (error) { console.error("List fetch error", error); }
+            
+            const btn = document.getElementById('btn-login');
+            btn.disabled = false;
+            btn.innerText = "Start Shift";
+            document.getElementById('loading-msg').style.display = 'none';
+        })();
+
+        // --- LOGIN ---
+        window.handleLogin = function() {
+            const inputId = document.getElementById('input-casper-id').value.toUpperCase().trim();
+            if(!inputId) return showToast("Please enter an ID");
+
+            // 1. UNLOCK AUDIO ON USER INTERACTION
+            unlockAudio();
+
+            if (inputId === 'DEO' || inputId === 'ADMIN') {
+                currentUser = inputId;
+                if ("Notification" in window) Notification.requestPermission();
+                enterDeoMode();
+                return;
+            }
+
+            let isValidUser = true; 
+            if(authorizedPickers.length > 0) {
+                 isValidUser = authorizedPickers.some(id => String(id).toUpperCase() === inputId);
+            }
+
+            if (isValidUser) {
+                currentUser = inputId;
+                enterPickerMode();
+            } else {
+                showToast("Access Denied: ID not found.");
+            }
+        }
+
+        // --- AUDIO UNLOCKER ---
+        // This plays a silent sound when the user clicks Login
+        // This tricks the browser into allowing audio later
+        function unlockAudio() {
+            const audio = document.getElementById('alert-sound');
+            audio.play().then(() => {
+                audio.pause();
+                audio.currentTime = 0;
+            }).catch(e => console.log("Audio unlock failed", e));
+        }
+
+        function enterDeoMode() {
+            document.getElementById('view-login').classList.remove('active-view');
+            document.getElementById('view-deo').classList.add('active-view');
+            document.getElementById('user-badge').style.display = "block";
+            document.getElementById('user-badge').innerText = "Manager Mode";
+            isDeoMode = true;
+            initManagerListener();
+            initHistoryListener(); 
+            initActivePickersListener();
+        }
+
+        function enterPickerMode() {
+            document.getElementById('view-login').classList.remove('active-view');
+            document.getElementById('view-picker').classList.add('active-view');
+            document.getElementById('user-badge').style.display = "block";
+            document.getElementById('user-badge').innerText = `Picker: ${currentUser}`;
+            
+            isDeoMode = false;
+            generateZones();
+            initPickerListener(); 
+            
+            // Presence
+            const myPresenceRef = ref(db, 'active_pickers/' + currentUser);
+            set(myPresenceRef, { status: 'PICKING', last_seen: Date.now(), call_out: false });
+            onDisconnect(myPresenceRef).remove();
+
+            // Callout Listener (With Loop)
+            onValue(myPresenceRef, (snapshot) => {
+                const data = snapshot.val();
+                if(data && data.call_out === true) {
+                    startCalloutAlert();
+                } else {
+                    stopCalloutAlert();
+                }
+            });
+        }
+
+        // --- ALERT SYSTEM ---
+        function startCalloutAlert() {
+            const overlay = document.getElementById('callout-overlay');
+            if(overlay.style.display === 'flex') return; // Already running
+
+            overlay.style.display = 'flex';
+            
+            // Loop audio and vibration
+            alertInterval = setInterval(() => {
+                playVoiceAlert("Report to desk immediately.");
+                if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
+            }, 3000);
+            
+            // Play immediately once
+            playVoiceAlert("Report to desk immediately.");
+            if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
+        }
+
+        function stopCalloutAlert() {
+            document.getElementById('callout-overlay').style.display = 'none';
+            if(alertInterval) clearInterval(alertInterval);
+            if('speechSynthesis' in window) window.speechSynthesis.cancel();
+        }
+
+        window.acknowledgeCallout = function() {
+            stopCalloutAlert();
+            update(ref(db, 'active_pickers/' + currentUser), { call_out: false });
+        }
+
+        // --- UI HELPERS ---
+        window.showToast = function(msg) {
+            const toast = document.getElementById("toast");
+            document.getElementById("toast-msg").innerText = msg;
+            toast.classList.add("show");
+            setTimeout(() => toast.classList.remove("show"), 3000);
+        }
+
+        function playVoiceAlert(text) {
+             if ('speechSynthesis' in window) {
+                const msg = new SpeechSynthesisUtterance(text);
+                msg.rate = 1.1;
+                msg.pitch = 1.2;
+                window.speechSynthesis.speak(msg);
+            }
+        }
+
+        // --- PICKER FUNCTIONS ---
+        window.toggleZoneSelector = function() {
+            document.getElementById('picker-controls').style.display = 'none';
+            document.getElementById('zone-selector').style.display = 'block';
+        }
+
+        window.cancelZoneSelection = function() {
+            document.getElementById('picker-controls').style.display = 'block';
+            document.getElementById('zone-selector').style.display = 'none';
+        }
+
+        function generateZones() {
+            const container = document.getElementById('zone-buttons');
+            const aisles = ['A', 'B', 'C', 'D', 'E', 'F'];
+            let html = '';
+            aisles.forEach(aisle => {
+                for(let i=1; i<=3; i++) { 
+                    let zone = aisle + i;
+                    html += `<button class="zone-btn" onclick="raiseTicket('${zone}')">${zone}</button>`;
+                }
+            });
+            container.innerHTML = html;
+            window.raiseTicket = raiseTicket;
+        }
+
+        function raiseTicket(zone) {
+            const newTicketRef = push(ref(db, 'tickets')); 
+            set(newTicketRef, {
+                casper_id: currentUser,
+                zone: zone,
+                timestamp: Date.now()
+            }).then(() => {
+                currentTicketId = newTicketRef.key;
+                setPickerState('HOLD', zone);
+                update(ref(db, 'active_pickers/' + currentUser), { status: 'ISSUE (' + zone + ')' });
+            });
+        }
+
+        window.cancelActiveTicket = function() {
+            if(currentTicketId) archiveAndResolve(currentTicketId, 'False Alarm');
+        }
+
+        function setPickerState(state, zone) {
+            const hero = document.getElementById('picker-status-card');
+            const text = document.getElementById('status-text');
+            const info = document.getElementById('display-zone-info');
+
+            if(state === 'HOLD') {
+                hero.className = 'status-hero bg-hold';
+                text.innerText = 'STOPPED';
+                info.style.display = 'block';
+                document.getElementById('display-zone').innerText = zone;
+                
+                document.getElementById('zone-selector').style.display = 'none';
+                document.getElementById('picker-waiting').style.display = 'block';
+            } else {
+                hero.className = 'status-hero bg-picking';
+                text.innerText = 'PICKING';
+                info.style.display = 'none';
+                
+                document.getElementById('picker-controls').style.display = 'block';
+                document.getElementById('picker-waiting').style.display = 'none';
+                document.getElementById('zone-selector').style.display = 'none';
+                currentTicketId = null;
+            }
+        }
+
+        function initPickerListener() {
+            onValue(ref(db, 'tickets'), (snapshot) => {
+                const data = snapshot.val();
+                let myTicketStillExists = false;
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        if (key === currentTicketId) myTicketStillExists = true;
+                    });
+                }
+                if (currentTicketId && !myTicketStillExists) {
+                    setPickerState('PICKING');
+                }
+            });
+        }
+
+        // --- DEO FUNCTIONS ---
+        function initManagerListener() {
+            const listContainer = document.getElementById('ticket-list');
+            const countBadge = document.getElementById('issue-count');
+
+            onValue(ref(db, 'tickets'), (snapshot) => {
+                const data = snapshot.val();
+                listContainer.innerHTML = "";
+                let count = 0;
+
+                if (!data) {
+                    listContainer.innerHTML = '<div class="empty-state">No active issues at the moment.</div>';
+                } else {
+                    Object.keys(data).forEach(key => {
+                        count++;
+                        const ticket = data[key];
+                        const timeAgo = Math.floor((Date.now() - ticket.timestamp) / 60000); 
+                        
+                        const html = `
+                        <div class="ticket-item">
+                            <div class="ticket-details">
+                                <h4>
+                                    <span class="badge badge-red">ZONE ${ticket.zone}</span>
+                                    <span>&nbsp;${ticket.casper_id}</span>
+                                </h4>
+                                <p>Waiting for ${timeAgo} mins</p>
+                            </div>
+                            <button class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 0.9rem;" onclick="promptResolve('${key}')">Resolve</button>
+                        </div>`;
+                        listContainer.innerHTML += html;
+                    });
+                }
+                countBadge.innerText = count;
+                initialLoadComplete = true;
+            });
+
+            onChildAdded(ref(db, 'tickets'), (snapshot) => {
+                if (initialLoadComplete) triggerAlert(snapshot.val().zone);
+            });
+        }
+
+        function initActivePickersListener() {
+            const listContainer = document.getElementById('active-pickers-list');
+            const countBadge = document.getElementById('picker-count');
+
+            onValue(ref(db, 'active_pickers'), (snapshot) => {
+                const data = snapshot.val();
+                listContainer.innerHTML = "";
+                let count = 0;
+
+                if (!data) {
+                    listContainer.innerHTML = '<div class="empty-state">No pickers online.</div>';
+                } else {
+                    Object.keys(data).forEach(pickerId => {
+                        count++;
+                        const picker = data[pickerId];
+                        const isIssue = picker.status.includes('ISSUE');
+                        const dotClass = isIssue ? 'dot-red' : 'dot-green';
+                        const statusColor = isIssue ? 'var(--danger)' : '#6B7280';
+                        
+                        const html = `
+                        <div class="picker-item">
+                            <div class="picker-info">
+                                <div class="status-dot ${dotClass}"></div>
+                                <div>
+                                    <div class="picker-name">${pickerId}</div>
+                                    <div class="picker-status-text" style="color:${statusColor}">${picker.status}</div>
+                                </div>
+                            </div>
+                            <button class="btn-call" onclick="callOutPicker('${pickerId}')">📢 CALL</button>
+                        </div>`;
+                        listContainer.innerHTML += html;
+                    });
+                }
+                countBadge.innerText = count;
+            });
+        }
+
+        // --- GLOBAL ACTIONS ---
+        window.callOutPicker = function(pickerId) {
+            if(confirm(`Send 'REPORT TO DESK' alert to ${pickerId}?`)) {
+                update(ref(db, 'active_pickers/' + pickerId), { call_out: true });
+                showToast(`Alert sent to ${pickerId}`);
+            }
+        }
+
+        window.promptResolve = function(ticketId) {
+            pendingResolveId = ticketId;
+            document.getElementById('resolve-modal').style.display = 'flex';
+        }
+        window.confirmResolve = function(category) {
+            if(pendingResolveId) {
+                archiveAndResolve(pendingResolveId, category);
+                closeModal();
+            }
+        }
+        window.closeModal = function() {
+            document.getElementById('resolve-modal').style.display = 'none';
+            pendingResolveId = null;
+        }
+
+        function archiveAndResolve(ticketId, category) {
+            const ticketRef = ref(db, 'tickets/' + ticketId);
+            get(ticketRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const ticket = snapshot.val();
+                    const endTime = Date.now();
+                    const duration = endTime - ticket.timestamp;
+
+                    push(ref(db, 'history'), {
+                        casper_id: ticket.casper_id,
+                        zone: ticket.zone,
+                        start_time: ticket.timestamp,
+                        end_time: endTime,
+                        duration_ms: duration,
+                        category: category
+                    });
+                    remove(ticketRef);
+                    if(ticket.casper_id) update(ref(db, 'active_pickers/' + ticket.casper_id), { status: 'PICKING' });
+                }
+            });
+        }
+
+        // --- HISTORY & CSV ---
+        function initHistoryListener() {
+            const historyTable = document.getElementById('history-list');
+            onValue(ref(db, 'history'), (snapshot) => {
+                const data = snapshot.val();
+                historyTable.innerHTML = "";
+                if(data) {
+                    allHistoryData = Object.values(data).sort((a,b) => b.end_time - a.end_time);
+                    allHistoryData.slice(0, 20).forEach(entry => {
+                        const seconds = Math.floor((entry.duration_ms / 1000) % 60);
+                        const minutes = Math.floor((entry.duration_ms / (1000 * 60)) % 60);
+                        const duration = `${minutes}m ${seconds}s`;
+                        
+                        const time = new Date(entry.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        
+                        historyTable.innerHTML += `<tr>
+                            <td>${time}</td>
+                            <td>${entry.casper_id}</td>
+                            <td><span class="badge badge-red">${entry.zone}</span></td>
+                            <td>${entry.category || 'Resolved'}</td>
+                            <td style="font-weight:bold;">${duration}</td>
+                        </tr>`;
+                    });
+                }
+            });
+        }
+
+        window.downloadCSV = function() {
+            if(!allHistoryData.length) return showToast("No data to export");
+            let csv = "data:text/csv;charset=utf-8,Date,Time,Picker ID,Zone,Category,Duration (Seconds)\n";
+            allHistoryData.forEach(row => {
+                const d = new Date(row.start_time);
+                const date = d.toLocaleDateString();
+                const time = d.toLocaleTimeString();
+                const sec = Math.round(row.duration_ms / 1000);
+                csv += `${date},${time},${row.casper_id},${row.zone},"${row.category||'Unknown'}",${sec}\n`;
+            });
+            const link = document.createElement("a");
+            link.href = encodeURI(csv);
+            link.download = `ardon_report_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
+        window.testNotification = function() { triggerAlert("Test Zone A1"); }
+        function triggerAlert(zoneName) {
+            const msg = `Issue reported in Zone ${zoneName}`;
+            playVoiceAlert(`Alert. ${msg}`);
+            showToast(msg);
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("Ardon Light Alert", { body: msg, requireInteraction: true });
+            }
+        }
+    </script>
+</body>
+</html>
