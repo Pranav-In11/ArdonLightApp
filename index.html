@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ardon Light - Command Center</title>
+    <title>Ardon Light v2.1</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         /* --- MODERN VARIABLES --- */
@@ -26,6 +26,7 @@
             margin: 0;
             padding: 0;
             -webkit-font-smoothing: antialiased;
+            overscroll-behavior: none;
         }
 
         /* --- HEADER --- */
@@ -47,6 +48,17 @@
             color: var(--primary);
             font-weight: 800;
             letter-spacing: -0.025em;
+        }
+
+        #logout-btn {
+            display: none; /* Hidden on login screen */
+            background: none;
+            border: 1px solid #E5E7EB;
+            color: var(--danger);
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            cursor: pointer;
         }
 
         /* --- LAYOUT CONTAINER --- */
@@ -120,6 +132,7 @@
             text-align: center;
             margin-bottom: 2rem;
             box-shadow: var(--shadow);
+            transition: background 0.5s ease;
         }
         .bg-picking { background: linear-gradient(135deg, #10B981 0%, #059669 100%); }
         .bg-hold { background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); animation: pulse-red 2s infinite; }
@@ -178,7 +191,7 @@
 
         .card-body {
             padding: 0; /* Removing padding for list items */
-            max-height: 400px;
+            max-height: 500px;
             overflow-y: auto;
         }
         
@@ -242,6 +255,7 @@
         .cat-btn { background-color: #F3F4F6; color: var(--dark); padding: 1rem; border-radius: 8px; font-weight: 600; }
         .cat-btn:hover { background-color: var(--primary); color: white; }
 
+        /* CALL OUT OVERLAY (FLASHING RED) */
         #callout-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: var(--danger); z-index: 3000;
@@ -300,8 +314,10 @@
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary);"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
             <h2>Ardon Light</h2>
         </div>
-        <div id="user-badge" style="display:none; font-weight:600; color:var(--dark); background:#F3F4F6; padding: 6px 12px; border-radius:20px;">
-            </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div id="user-badge" style="display:none; font-weight:600; color:var(--dark); background:#F3F4F6; padding: 6px 12px; border-radius:20px; font-size: 0.9rem;"></div>
+            <button id="logout-btn" onclick="handleLogout()">Logout</button>
+        </div>
     </header>
 
     <div class="container">
@@ -403,6 +419,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getDatabase, ref, push, onValue, remove, set, onChildAdded, get, update, onDisconnect } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
+        // --- CONFIGURATION: REPLACE THESE ---
         const firebaseConfig = {
             apiKey: "AIzaSyBIg1Qdo-GPYFV6ML2JNOLSyx-Jrllmx5s",
             authDomain: "ardon-4b555.firebaseapp.com",
@@ -433,10 +450,25 @@
                 if (response.ok) authorizedPickers = await response.json();
             } catch (error) { console.error("List fetch error", error); }
             
-            const btn = document.getElementById('btn-login');
-            btn.disabled = false;
-            btn.innerText = "Start Shift";
-            document.getElementById('loading-msg').style.display = 'none';
+            // Check for saved session
+            const savedUser = localStorage.getItem('ardon_user');
+            
+            if (savedUser) {
+                console.log("Auto-logging in as:", savedUser);
+                currentUser = savedUser;
+                // We fake the login process
+                if (currentUser === 'DEO' || currentUser === 'ADMIN') {
+                    enterDeoMode();
+                } else {
+                    enterPickerMode();
+                }
+            } else {
+                // Show login screen if no session
+                const btn = document.getElementById('btn-login');
+                btn.disabled = false;
+                btn.innerText = "Start Shift";
+                document.getElementById('loading-msg').style.display = 'none';
+            }
         })();
 
         // --- LOGIN ---
@@ -449,6 +481,9 @@
 
             if (inputId === 'DEO' || inputId === 'ADMIN') {
                 currentUser = inputId;
+                // Save session
+                localStorage.setItem('ardon_user', currentUser);
+                
                 if ("Notification" in window) Notification.requestPermission();
                 enterDeoMode();
                 return;
@@ -461,15 +496,27 @@
 
             if (isValidUser) {
                 currentUser = inputId;
+                // Save session
+                localStorage.setItem('ardon_user', currentUser);
+                
                 enterPickerMode();
             } else {
                 showToast("Access Denied: ID not found.");
             }
         }
+        
+        // --- LOGOUT ---
+        window.handleLogout = function() {
+            // If picker, remove from online list before clearing session
+            if (!isDeoMode && currentUser) {
+                remove(ref(db, 'active_pickers/' + currentUser));
+            }
+            
+            localStorage.removeItem('ardon_user');
+            location.reload(); // Reload page to reset everything
+        }
 
         // --- AUDIO UNLOCKER ---
-        // This plays a silent sound when the user clicks Login
-        // This tricks the browser into allowing audio later
         function unlockAudio() {
             const audio = document.getElementById('alert-sound');
             audio.play().then(() => {
@@ -483,6 +530,7 @@
             document.getElementById('view-deo').classList.add('active-view');
             document.getElementById('user-badge').style.display = "block";
             document.getElementById('user-badge').innerText = "Manager Mode";
+            document.getElementById('logout-btn').style.display = "block";
             isDeoMode = true;
             initManagerListener();
             initHistoryListener(); 
@@ -494,6 +542,7 @@
             document.getElementById('view-picker').classList.add('active-view');
             document.getElementById('user-badge').style.display = "block";
             document.getElementById('user-badge').innerText = `Picker: ${currentUser}`;
+            document.getElementById('logout-btn').style.display = "block";
             
             isDeoMode = false;
             generateZones();
