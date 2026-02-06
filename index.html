@@ -626,7 +626,7 @@
             const aisles = ['A', 'B', 'C', 'D', 'E', 'F'];
             let html = '';
             aisles.forEach(aisle => {
-                for(let i=1; i<=3; i++) { 
+                for(let i=1; i<=9; i++) { 
                     let zone = aisle + i;
                     html += `<button class="zone-btn" onclick="raiseTicket('${zone}')">${zone}</button>`;
                 }
